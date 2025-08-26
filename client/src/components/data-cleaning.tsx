@@ -230,26 +230,37 @@ export default function DataCleaning({ csvData }: DataCleaningProps) {
 
       case 'coalesce':
         return (
-          <div className="space-y-2">
-            <Label className="text-sm">Fallback columns (select multiple):</Label>
-            <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-              {csvData.headers.filter(h => h !== rule.column).map(header => (
-                <Label key={header} className="flex items-center space-x-2 text-xs">
-                  <input
-                    type="checkbox"
-                    checked={(rule.parameters.fallbackColumns || []).includes(header)}
-                    onChange={(e) => {
-                      const current = rule.parameters.fallbackColumns || [];
-                      const updated = e.target.checked 
-                        ? [...current, header]
-                        : current.filter((h: string) => h !== header);
-                      updateRuleParameter(rule.id, 'fallbackColumns', updated);
-                    }}
-                    data-testid={`checkbox-fallback-${rule.id}-${header}`}
-                  />
-                  <span>{header}</span>
-                </Label>
-              ))}
+          <div className="space-y-3">
+            <div>
+              <Label className="text-sm">Fallback columns (select multiple):</Label>
+              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto mt-2">
+                {csvData.headers.filter(h => h !== rule.column).map(header => (
+                  <Label key={header} className="flex items-center space-x-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={(rule.parameters.fallbackColumns || []).includes(header)}
+                      onChange={(e) => {
+                        const current = rule.parameters.fallbackColumns || [];
+                        const updated = e.target.checked 
+                          ? [...current, header]
+                          : current.filter((h: string) => h !== header);
+                        updateRuleParameter(rule.id, 'fallbackColumns', updated);
+                      }}
+                      data-testid={`checkbox-fallback-${rule.id}-${header}`}
+                    />
+                    <span>{header}</span>
+                  </Label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label className="text-sm">Default value (if no fallback has data):</Label>
+              <Input
+                placeholder="Enter default value (e.g., 0, N/A, NULL)"
+                value={rule.parameters.defaultValue || ''}
+                onChange={(e) => updateRuleParameter(rule.id, 'defaultValue', e.target.value)}
+                data-testid={`input-default-value-${rule.id}`}
+              />
             </div>
           </div>
         );

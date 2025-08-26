@@ -440,17 +440,27 @@ export class MemStorage implements IStorage {
   }
 
   private coalesceColumns(data: any[], headers: string[], column: string, params: any) {
-    const { fallbackColumns = [] } = params;
+    const { fallbackColumns = [], defaultValue = '' } = params;
     let coalescedCount = 0;
 
     const newData = data.map(row => {
       if (!row[column] || row[column] === '' || row[column] === null) {
+        let valueFound = false;
+        
+        // First try fallback columns
         for (const fallbackCol of fallbackColumns) {
           if (row[fallbackCol] && row[fallbackCol] !== '' && row[fallbackCol] !== null) {
             row[column] = row[fallbackCol];
             coalescedCount++;
+            valueFound = true;
             break;
           }
+        }
+        
+        // If no fallback column had a value, use default value
+        if (!valueFound && defaultValue !== '') {
+          row[column] = defaultValue;
+          coalescedCount++;
         }
       }
       return row;
@@ -459,8 +469,8 @@ export class MemStorage implements IStorage {
     return {
       data: newData,
       headers,
-      description: `Coalesced ${coalescedCount} values in column '${column}' using fallback columns`,
-      summary: { coalescedCount, fallbackColumns },
+      description: `Coalesced ${coalescedCount} values in column '${column}' using fallback columns${defaultValue ? ` and default value '${defaultValue}'` : ''}`,
+      summary: { coalescedCount, fallbackColumns, defaultValue },
     };
   }
 
