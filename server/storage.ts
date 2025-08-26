@@ -465,24 +465,37 @@ export class MemStorage implements IStorage {
   }
 
   private manipulateText(data: any[], headers: string[], column: string, params: any) {
-    const { operation = 'add', text = '', position = 'end' } = params;
+    const { operation = 'add', text = '', position = 'end', searchText = '' } = params;
     let transformedCount = 0;
+
+    console.log('Text manipulation params:', params); // Debug log
 
     const newData = data.map(row => {
       if (row[column] && typeof row[column] === 'string') {
         const originalValue = row[column];
+        let newValue = originalValue;
+        
         switch (operation) {
           case 'add':
-            row[column] = position === 'start' ? text + originalValue : originalValue + text;
+            newValue = position === 'start' ? text + originalValue : originalValue + text;
             break;
           case 'remove':
-            row[column] = originalValue.replace(new RegExp(text, 'g'), '');
+            // Create regex to handle special characters properly
+            const removePattern = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            newValue = originalValue.replace(new RegExp(removePattern, 'g'), '');
             break;
           case 'replace':
-            row[column] = originalValue.replace(new RegExp(params.searchText || '', 'g'), text);
+            // Create regex to handle special characters properly
+            const searchPattern = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            newValue = originalValue.replace(new RegExp(searchPattern, 'g'), text);
+            console.log(`Replacing "${searchText}" with "${text}" in "${originalValue}" -> "${newValue}"`); // Debug log
             break;
         }
-        transformedCount++;
+        
+        if (newValue !== originalValue) {
+          row[column] = newValue;
+          transformedCount++;
+        }
       }
       return row;
     });
@@ -490,8 +503,8 @@ export class MemStorage implements IStorage {
     return {
       data: newData,
       headers,
-      description: `Applied text ${operation} to ${transformedCount} values in column '${column}'`,
-      summary: { transformedCount, operation, text, position },
+      description: `Applied text ${operation} to ${transformedCount} values in column '${column}'${operation === 'replace' ? ` (replaced "${searchText}" with "${text}")` : ''}`,
+      summary: { transformedCount, operation, text, position, searchText },
     };
   }
 }
