@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import UploadSection from "@/components/upload-section";
 import DataPreview from "@/components/data-preview";
 import ProfilingOptions from "@/components/profiling-options";
@@ -66,6 +67,11 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              <Link href="/cleaning">
+                <a className="text-sm text-material-blue hover:text-material-blue-dark font-medium" data-testid="link-cleaning">
+                  Data Cleaning
+                </a>
+              </Link>
               {currentState !== 'upload' && (
                 <button
                   onClick={handleStartOver}

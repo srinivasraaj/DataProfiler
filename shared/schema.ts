@@ -84,3 +84,37 @@ export type DateAnalysis = z.infer<typeof dateAnalysisSchema>;
 export type DuplicateRow = z.infer<typeof duplicateRowSchema>;
 export type DistinctValues = z.infer<typeof distinctValuesSchema>;
 export type UniqueKeyAnalysis = z.infer<typeof uniqueKeyAnalysisSchema>;
+
+// Data Cleaning Schemas
+export const transformationRuleSchema = z.object({
+  id: z.string(),
+  column: z.string(),
+  type: z.enum([
+    'date_format',
+    'number_format', 
+    'remove_duplicates',
+    'subset_column',
+    'replace_nulls',
+    'coalesce',
+    'text_manipulation'
+  ]),
+  parameters: z.record(z.any()),
+});
+
+export const dataCleaningRequestSchema = z.object({
+  csvData: csvUploadSchema,
+  transformationRules: z.array(transformationRuleSchema),
+  outputDelimiter: z.string().default(','),
+});
+
+export const dataCleaningResultSchema = z.object({
+  cleanedData: z.array(z.record(z.string(), z.any())),
+  headers: z.array(z.string()),
+  appliedTransformations: z.array(z.string()),
+  rowsRemoved: z.number(),
+  transformationSummary: z.record(z.string(), z.any()),
+});
+
+export type TransformationRule = z.infer<typeof transformationRuleSchema>;
+export type DataCleaningRequest = z.infer<typeof dataCleaningRequestSchema>;
+export type DataCleaningResult = z.infer<typeof dataCleaningResultSchema>;

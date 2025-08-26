@@ -1,8 +1,9 @@
-import { type ProfilingRequest, type ProfilingResult } from "@shared/schema";
+import { type ProfilingRequest, type ProfilingResult, type DataCleaningRequest, type DataCleaningResult, type TransformationRule } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
   processProfilingRequest(request: ProfilingRequest): Promise<ProfilingResult>;
+  processDataCleaning(request: DataCleaningRequest): Promise<DataCleaningResult>;
 }
 
 export class MemStorage implements IStorage {
@@ -236,6 +237,262 @@ export class MemStorage implements IStorage {
         isUniqueKey,
       };
     });
+  }
+
+  async processDataCleaning(request: DataCleaningRequest): Promise<DataCleaningResult> {
+    const { csvData, transformationRules, outputDelimiter } = request;
+    let cleanedData = [...csvData.data];
+    let headers = [...csvData.headers];
+    const appliedTransformations: string[] = [];
+    let rowsRemoved = 0;
+    const transformationSummary: Record<string, any> = {};
+
+    // Apply transformations in order
+    for (const rule of transformationRules) {
+      const result = this.applyTransformation(cleanedData, headers, rule);
+      cleanedData = result.data;
+      headers = result.headers;
+      rowsRemoved += result.rowsRemoved || 0;
+      appliedTransformations.push(result.description);
+      transformationSummary[rule.id] = result.summary;
+    }
+
+    return {
+      cleanedData,
+      headers,
+      appliedTransformations,
+      rowsRemoved,
+      transformationSummary,
+    };
+  }
+
+  private applyTransformation(
+    data: any[],
+    headers: string[],
+    rule: TransformationRule
+  ): {
+    data: any[];
+    headers: string[];
+    rowsRemoved?: number;
+    description: string;
+    summary: any;
+  } {
+    const { column, type, parameters } = rule;
+
+    switch (type) {
+      case 'date_format':
+        return this.transformDateFormat(data, headers, column, parameters);
+      case 'number_format':
+        return this.transformNumberFormat(data, headers, column, parameters);
+      case 'remove_duplicates':
+        return this.removeDuplicates(data, headers);
+      case 'subset_column':
+        return this.subsetColumn(data, headers, column, parameters);
+      case 'replace_nulls':
+        return this.replaceNulls(data, headers, column, parameters);
+      case 'coalesce':
+        return this.coalesceColumns(data, headers, column, parameters);
+      case 'text_manipulation':
+        return this.manipulateText(data, headers, column, parameters);
+      default:
+        return {
+          data,
+          headers,
+          description: `Unknown transformation type: ${type}`,
+          summary: {},
+        };
+    }
+  }
+
+  private transformDateFormat(data: any[], headers: string[], column: string, params: any) {
+    const { targetFormat = 'YYYY-MM-DD' } = params;
+    let transformedCount = 0;
+
+    const newData = data.map(row => {
+      if (row[column] && row[column] !== '') {
+        const date = new Date(row[column]);
+        if (!isNaN(date.getTime())) {
+          row[column] = this.formatDate(date, targetFormat);
+          transformedCount++;
+        }
+      }
+      return row;
+    });
+
+    return {
+      data: newData,
+      headers,
+      description: `Transformed ${transformedCount} dates in column '${column}' to format '${targetFormat}'`,
+      summary: { transformedCount, targetFormat },
+    };
+  }
+
+  private formatDate(date: Date, format: string): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return format
+      .replace('YYYY', String(year))
+      .replace('MM', month)
+      .replace('DD', day);
+  }
+
+  private transformNumberFormat(data: any[], headers: string[], column: string, params: any) {
+    const { operation = 'integer' } = params;
+    let transformedCount = 0;
+
+    const newData = data.map(row => {
+      if (row[column] && row[column] !== '' && !isNaN(Number(row[column]))) {
+        const num = Number(row[column]);
+        switch (operation) {
+          case 'integer':
+            row[column] = Math.round(num);
+            break;
+          case 'ceiling':
+            row[column] = Math.ceil(num);
+            break;
+          case 'floor':
+            row[column] = Math.floor(num);
+            break;
+          case 'decimal':
+            row[column] = parseFloat(num.toFixed(params.decimalPlaces || 2));
+            break;
+        }
+        transformedCount++;
+      }
+      return row;
+    });
+
+    return {
+      data: newData,
+      headers,
+      description: `Applied ${operation} operation to ${transformedCount} values in column '${column}'`,
+      summary: { transformedCount, operation },
+    };
+  }
+
+  private removeDuplicates(data: any[], headers: string[]) {
+    const seen = new Set();
+    const uniqueData = [];
+    let duplicateCount = 0;
+
+    for (const row of data) {
+      const rowString = JSON.stringify(row);
+      if (!seen.has(rowString)) {
+        seen.add(rowString);
+        uniqueData.push(row);
+      } else {
+        duplicateCount++;
+      }
+    }
+
+    return {
+      data: uniqueData,
+      headers,
+      rowsRemoved: duplicateCount,
+      description: `Removed ${duplicateCount} duplicate rows`,
+      summary: { duplicateCount, uniqueRows: uniqueData.length },
+    };
+  }
+
+  private subsetColumn(data: any[], headers: string[], column: string, params: any) {
+    const { startIndex = 0, length } = params;
+    let transformedCount = 0;
+
+    const newData = data.map(row => {
+      if (row[column] && typeof row[column] === 'string') {
+        const originalValue = row[column];
+        row[column] = length 
+          ? originalValue.substring(startIndex, startIndex + length)
+          : originalValue.substring(startIndex);
+        transformedCount++;
+      }
+      return row;
+    });
+
+    return {
+      data: newData,
+      headers,
+      description: `Extracted substring from ${transformedCount} values in column '${column}'`,
+      summary: { transformedCount, startIndex, length },
+    };
+  }
+
+  private replaceNulls(data: any[], headers: string[], column: string, params: any) {
+    const { replacementValue = '' } = params;
+    let replacedCount = 0;
+
+    const newData = data.map(row => {
+      if (row[column] === null || row[column] === undefined || row[column] === '' || row[column] === 'null') {
+        row[column] = replacementValue;
+        replacedCount++;
+      }
+      return row;
+    });
+
+    return {
+      data: newData,
+      headers,
+      description: `Replaced ${replacedCount} null values in column '${column}' with '${replacementValue}'`,
+      summary: { replacedCount, replacementValue },
+    };
+  }
+
+  private coalesceColumns(data: any[], headers: string[], column: string, params: any) {
+    const { fallbackColumns = [] } = params;
+    let coalescedCount = 0;
+
+    const newData = data.map(row => {
+      if (!row[column] || row[column] === '' || row[column] === null) {
+        for (const fallbackCol of fallbackColumns) {
+          if (row[fallbackCol] && row[fallbackCol] !== '' && row[fallbackCol] !== null) {
+            row[column] = row[fallbackCol];
+            coalescedCount++;
+            break;
+          }
+        }
+      }
+      return row;
+    });
+
+    return {
+      data: newData,
+      headers,
+      description: `Coalesced ${coalescedCount} values in column '${column}' using fallback columns`,
+      summary: { coalescedCount, fallbackColumns },
+    };
+  }
+
+  private manipulateText(data: any[], headers: string[], column: string, params: any) {
+    const { operation = 'add', text = '', position = 'end' } = params;
+    let transformedCount = 0;
+
+    const newData = data.map(row => {
+      if (row[column] && typeof row[column] === 'string') {
+        const originalValue = row[column];
+        switch (operation) {
+          case 'add':
+            row[column] = position === 'start' ? text + originalValue : originalValue + text;
+            break;
+          case 'remove':
+            row[column] = originalValue.replace(new RegExp(text, 'g'), '');
+            break;
+          case 'replace':
+            row[column] = originalValue.replace(new RegExp(params.searchText || '', 'g'), text);
+            break;
+        }
+        transformedCount++;
+      }
+      return row;
+    });
+
+    return {
+      data: newData,
+      headers,
+      description: `Applied text ${operation} to ${transformedCount} values in column '${column}'`,
+      summary: { transformedCount, operation, text, position },
+    };
   }
 }
 
