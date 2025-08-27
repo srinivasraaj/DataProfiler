@@ -63,7 +63,7 @@ export default function Home() {
             "@type": "SoftwareApplication",
             "name": "CSV Data Profiler",
             "applicationCategory": "Data Analysis Tool",
-            "description": "Professional data engineering tool for CSV analysis and profiling"
+            "description": "Data Analysis & Quality for CSV analysis and profiling"
           }
         })
       }} />
@@ -79,14 +79,14 @@ export default function Home() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-xl font-medium text-gray-900">CSV Data Profiler</h1>
-                <p className="text-sm text-gray-500">Professional Data Engineering Tool</p>
+                <h1 className="text-xl font-medium text-gray-900">CSV Data Profiler -Beta</h1>
+                <p className="text-sm text-gray-500">Data Analysis & Quality</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <Link href="/cleaning">
                 <a className="text-sm text-material-blue hover:text-material-blue-dark font-medium" data-testid="link-cleaning">
-                  Data Cleaning
+                  Data Cleaning - Beta
                 </a>
               </Link>
               {currentState !== 'upload' && (

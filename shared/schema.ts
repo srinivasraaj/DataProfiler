@@ -91,6 +91,7 @@ export const transformationRuleSchema = z.object({
   column: z.string(),
   type: z.enum([
     'date_format',
+    'timestamp_format',
     'number_format', 
     'remove_duplicates',
     'subset_column',

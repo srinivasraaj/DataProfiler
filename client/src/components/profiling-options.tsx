@@ -119,7 +119,8 @@ export default function ProfilingOptions({ csvData, initialOptions, onStartProfi
               <div
                 key={option.key}
                 className={`border rounded-lg p-4 transition-colors cursor-pointer ${
-                  options[option.key] ? 'border-material-blue bg-material-blue bg-opacity-5' : 'border-gray-200 hover:border-material-blue'
+                  options[option.key]       ? 'border-gray-400 bg-gray-100' 
+      : 'border-gray-200 hover:border-material-blue'
                 }`}
                 onClick={() => handleOptionChange(option.key, !options[option.key])}
                 data-testid={`option-${option.key}`}

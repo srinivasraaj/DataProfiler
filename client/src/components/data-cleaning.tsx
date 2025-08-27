@@ -19,6 +19,7 @@ interface DataCleaningProps {
 
 const transformationTypes = [
   { value: 'date_format', label: 'Date Format', icon: '📅' },
+  { value: 'timestamp_format', label: 'Timestamp Format', icon: '🕐' },
   { value: 'number_format', label: 'Number Format', icon: '🔢' },
   { value: 'remove_duplicates', label: 'Remove Duplicates', icon: '🗑️' },
   { value: 'subset_column', label: 'Subset Column', icon: '✂️' },
@@ -32,6 +33,15 @@ const dateFormats = [
   { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY (15/01/2024)' },
   { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY (01/15/2024)' },
   { value: 'DD-MM-YYYY', label: 'DD-MM-YYYY (15-01-2024)' },
+];
+
+const timestampFormats = [
+  { value: 'YYYY-MM-DD HH:mm:ss', label: 'YYYY-MM-DD HH:mm:ss (2024-01-15 14:30:45)' },
+  { value: 'DD/MM/YYYY HH:mm:ss', label: 'DD/MM/YYYY HH:mm:ss (15/01/2024 14:30:45)' },
+  { value: 'MM/DD/YYYY HH:mm:ss', label: 'MM/DD/YYYY HH:mm:ss (01/15/2024 14:30:45)' },
+  { value: 'YYYY-MM-DD HH:mm', label: 'YYYY-MM-DD HH:mm (2024-01-15 14:30)' },
+  { value: 'unix', label: 'Unix Timestamp (1705332645)' },
+  { value: 'iso', label: 'ISO 8601 (2024-01-15T14:30:45.000Z)' },
 ];
 
 const numberOperations = [
@@ -160,6 +170,25 @@ export default function DataCleaning({ csvData }: DataCleaningProps) {
             </SelectTrigger>
             <SelectContent>
               {dateFormats.map(format => (
+                <SelectItem key={format.value} value={format.value}>
+                  {format.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+
+      case 'timestamp_format':
+        return (
+          <Select 
+            value={rule.parameters.targetFormat || 'YYYY-MM-DD HH:mm:ss'}
+            onValueChange={(value) => updateRuleParameter(rule.id, 'targetFormat', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select timestamp format" />
+            </SelectTrigger>
+            <SelectContent>
+              {timestampFormats.map(format => (
                 <SelectItem key={format.value} value={format.value}>
                   {format.label}
                 </SelectItem>

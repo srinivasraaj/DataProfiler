@@ -80,68 +80,90 @@ export class MemStorage implements IStorage {
   }
 
   private detectDateColumns(data: any[], headers: string[]): string[] {
-    const dateColumns: string[] = [];
-    
-    for (const header of headers) {
-      let dateCount = 0;
-      const sampleSize = Math.min(10, data.length);
-      
-      for (let i = 0; i < sampleSize; i++) {
-        const value = data[i][header];
-        if (value && this.isDateLike(value.toString())) {
-          dateCount++;
-        }
-      }
-      
-      if (dateCount / sampleSize > 0.5) {
-        dateColumns.push(header);
+  const dateColumns: string[] = [];
+
+  for (const header of headers) {
+    let dateCount = 0;
+    const sampleSize = Math.min(10, data.length);
+
+    // Skip columns that are obviously not dates based on their name
+    const headerLower = header.toLowerCase();
+    if (
+      headerLower.includes("id") ||
+      headerLower.includes("code") ||
+      headerLower.includes("number") ||
+      headerLower.includes("count")
+    ) {
+      continue;
+    }
+
+    for (let i = 0; i < sampleSize; i++) {
+      const value = data[i][header];
+      if (value && this.isDateLike(value.toString())) {
+        dateCount++;
       }
     }
-    
-    return dateColumns;
+
+    if (dateCount / sampleSize > 0.5) {
+      dateColumns.push(header);
+    }
   }
 
-  private isDateLike(value: string): boolean {
-    if (!value) return false;
-    const datePatterns = [
-      /^\d{4}-\d{2}-\d{2}$/,
-      /^\d{2}\/\d{2}\/\d{4}$/,
-      /^\d{4}\/\d{2}\/\d{2}$/,
-      /^\d{2}-\d{2}-\d{4}$/,
-    ];
-    
-    return datePatterns.some(pattern => pattern.test(value.trim())) || !isNaN(Date.parse(value));
+  return dateColumns;
+}
+
+private isDateLike(value: string): boolean {
+  if (!value) return false;
+
+  // Only consider reasonably long strings (avoid integers like "12345")
+  if (/^\d+$/.test(value.trim())) {
+    return false;
   }
 
-  private analyzeDateColumns(data: any[], dateColumns: string[]) {
-    return dateColumns.map(column => {
-      const dates = data
-        .map(row => row[column])
-        .filter(val => val && !isNaN(Date.parse(val)))
-        .map(val => new Date(val))
-        .sort((a, b) => a.getTime() - b.getTime());
+  const datePatterns = [
+    /^\d{4}-\d{2}-\d{2}$/,   // 2023-12-31
+    /^\d{2}\/\d{2}\/\d{4}$/, // 31/12/2023
+    /^\d{4}\/\d{2}\/\d{2}$/, // 2023/12/31
+    /^\d{2}-\d{2}-\d{4}$/,   // 31-12-2023
+  ];
 
-      if (dates.length === 0) {
-        return {
-          column,
-          minDate: null,
-          maxDate: null,
-          dateRange: null,
-        };
-      }
+  return (
+    datePatterns.some((pattern) => pattern.test(value.trim())) ||
+    !isNaN(Date.parse(value))
+  );
+}
 
-      const minDate = dates[0];
-      const maxDate = dates[dates.length - 1];
-      const dateRange = Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24));
+private analyzeDateColumns(data: any[], dateColumns: string[]) {
+  return dateColumns.map((column) => {
+    const dates = data
+      .map((row) => row[column])
+      .filter((val) => val && !isNaN(Date.parse(val)))
+      .map((val) => new Date(val))
+      .sort((a, b) => a.getTime() - b.getTime());
 
+    if (dates.length === 0) {
       return {
         column,
-        minDate: minDate.toISOString().split('T')[0],
-        maxDate: maxDate.toISOString().split('T')[0],
-        dateRange,
+        minDate: null,
+        maxDate: null,
+        dateRange: null,
       };
-    });
-  }
+    }
+
+    const minDate = dates[0];
+    const maxDate = dates[dates.length - 1];
+    const dateRange = Math.ceil(
+      (maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    return {
+      column,
+      minDate: minDate.toISOString().split("T")[0],
+      maxDate: maxDate.toISOString().split("T")[0],
+      dateRange,
+    };
+  });
+}
 
   private analyzeNullValues(data: any[], headers: string[]) {
     return headers.map(column => {
@@ -282,6 +304,8 @@ export class MemStorage implements IStorage {
     switch (type) {
       case 'date_format':
         return this.transformDateFormat(data, headers, column, parameters);
+      case 'timestamp_format':
+        return this.transformTimestampFormat(data, headers, column, parameters);
       case 'number_format':
         return this.transformNumberFormat(data, headers, column, parameters);
       case 'remove_duplicates':
@@ -305,14 +329,61 @@ export class MemStorage implements IStorage {
   }
 
   private transformDateFormat(data: any[], headers: string[], column: string, params: any) {
-    const { targetFormat = 'YYYY-MM-DD' } = params;
+  const { targetFormat = 'YYYY-MM-DD' } = params;
+  let transformedCount = 0;
+
+  const newData = data.map(row => {
+    if (row[column] && row[column].trim() !== '') {
+      const parsed = this.parseDate(row[column]);  // ✅ custom parser
+      if (parsed) {
+        row[column] = this.formatDate(parsed, targetFormat);
+        transformedCount++;
+      }
+    }
+    return row;
+  });
+
+  return {
+    data: newData,
+    headers,
+    description: `Transformed ${transformedCount} dates in column '${column}' to format '${targetFormat}'`,
+    summary: { transformedCount, targetFormat },
+  };
+}
+
+// Parses DD-MM-YYYY or DD/MM/YYYY into Date
+private parseDate(value: string): Date | null {
+  const parts = value.split(/[-/]/); // works for "-" or "/"
+  if (parts.length === 3) {
+    const [day, month, year] = parts.map(p => parseInt(p, 10));
+    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+      return new Date(year, month - 1, day);
+    }
+  }
+  return null; // invalid format
+}
+
+private formatDate(date: Date, format: string): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  
+  return format
+    .replace('YYYY', String(year))
+    .replace('MM', month)
+    .replace('DD', day);
+}
+
+
+  private transformTimestampFormat(data: any[], headers: string[], column: string, params: any) {
+    const { targetFormat = 'YYYY-MM-DD HH:mm:ss' } = params;
     let transformedCount = 0;
 
     const newData = data.map(row => {
       if (row[column] && row[column] !== '') {
-        const date = new Date(row[column]);
-        if (!isNaN(date.getTime())) {
-          row[column] = this.formatDate(date, targetFormat);
+        const timestamp = this.parseTimestamp(row[column]);
+        if (timestamp && !isNaN(timestamp.getTime())) {
+          row[column] = this.formatTimestamp(timestamp, targetFormat);
           transformedCount++;
         }
       }
@@ -322,20 +393,74 @@ export class MemStorage implements IStorage {
     return {
       data: newData,
       headers,
-      description: `Transformed ${transformedCount} dates in column '${column}' to format '${targetFormat}'`,
+      description: `Transformed ${transformedCount} timestamps in column '${column}' to format '${targetFormat}'`,
       summary: { transformedCount, targetFormat },
     };
   }
 
-  private formatDate(date: Date, format: string): string {
+  private parseTimestamp(value: string | number): Date | null {
+    // Try different timestamp formats
+    if (typeof value === 'number' || (!isNaN(Number(value)) && String(value).length >= 10)) {
+      // Unix timestamp (seconds or milliseconds)
+      const num = Number(value);
+      if (num > 1000000000) { // Reasonable timestamp check
+        // If it's in seconds, convert to milliseconds
+        const timestamp = num < 10000000000 ? num * 1000 : num;
+        return new Date(timestamp);
+      }
+    }
+    
+    // Handle string timestamps - normalize format before parsing
+    if (typeof value === 'string') {
+      // Handle DD-MM-YYYY HH:mm format (add seconds if missing)
+      const ddmmyyyyPattern = /^(\d{2})-(\d{2})-(\d{4})\s+(\d{1,2}):(\d{2})$/;
+      const match = value.match(ddmmyyyyPattern);
+      if (match) {
+        const [, day, month, year, hour, minute] = match;
+        // Construct ISO format string: YYYY-MM-DDTHH:mm:ss
+        const isoString = `${year}-${month}-${day}T${hour.padStart(2, '0')}:${minute}:00`;
+        return new Date(isoString);
+      }
+      
+      // Handle other DD-MM-YYYY HH:mm:ss format
+      const ddmmyyyyWithSecondsPattern = /^(\d{2})-(\d{2})-(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/;
+      const matchWithSeconds = value.match(ddmmyyyyWithSecondsPattern);
+      if (matchWithSeconds) {
+        const [, day, month, year, hour, minute, second] = matchWithSeconds;
+        const isoString = `${year}-${month}-${day}T${hour.padStart(2, '0')}:${minute}:${second}`;
+        return new Date(isoString);
+      }
+    }
+    
+    // Try ISO format or other date formats
+    const date = new Date(value);
+    return !isNaN(date.getTime()) ? date : null;
+  }
+
+  private formatTimestamp(date: Date, format: string): string {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
     
-    return format
-      .replace('YYYY', String(year))
-      .replace('MM', month)
-      .replace('DD', day);
+    switch (format) {
+      case 'unix':
+        return String(Math.floor(date.getTime() / 1000));
+      case 'iso':
+        return date.toISOString();
+      case 'YYYY-MM-DD HH:mm:ss':
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      case 'DD/MM/YYYY HH:mm:ss':
+        return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+      case 'MM/DD/YYYY HH:mm:ss':
+        return `${month}/${day}/${year} ${hours}:${minutes}:${seconds}`;
+      case 'YYYY-MM-DD HH:mm':
+        return `${year}-${month}-${day} ${hours}:${minutes}`;
+      default:
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
   }
 
   private transformNumberFormat(data: any[], headers: string[], column: string, params: any) {

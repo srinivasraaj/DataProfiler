@@ -45,7 +45,7 @@ export default function DataCleaningPage() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-xl font-medium text-gray-900">Data Cleaning</h1>
+                <h1 className="text-xl font-medium text-gray-900">Data Cleaning -Beta</h1>
                 <p className="text-sm text-gray-500">Transform and clean your CSV data</p>
               </div>
             </div>
