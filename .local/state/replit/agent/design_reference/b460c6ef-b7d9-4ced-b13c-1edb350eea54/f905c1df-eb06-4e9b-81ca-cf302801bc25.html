@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Data Profiler - Professional Data Engineering Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    'material-blue': '#1976D2',
+                    'material-blue-dark': '#1565C0',
+                    'material-gray': '#424242',
+                    'material-success': '#388E3C',
+                    'material-warning': '#F57C00',
+                    'material-error': '#D32F2F',
+                    'material-surface': '#FAFAFA'
+                },
+                fontFamily: {
+                    'roboto': ['Roboto', 'sans-serif']
+                },
+                boxShadow: {
+                    'material-1': '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
+                    'material-2': '0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23)',
+                    'material-3': '0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23)'
+                }
+            }
+        }
+    };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-material-surface font-roboto text-gray-800">
+    <!-- @COMPONENT: AppContainer [main app wrapper] -->
+    <div class="min-h-screen">
+        <!-- Header -->
+        <!-- @COMPONENT: Header [application header with branding] -->
+        <header class="bg-white shadow-material-1 sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-material-blue rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chart-line text-white text-lg"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-medium text-gray-900">CSV Data Profiler</h1>
+                            <p class="text-sm text-gray-500">Professional Data Engineering Tool</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span class="text-sm text-gray-500">No Authentication Required</span>
+                        <div class="w-8 h-8 bg-material-success rounded-full flex items-center justify-center">
+                            <i class="fas fa-check text-white text-sm"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <!-- @END_COMPONENT: Header -->
+
+        <!-- Main Content Container -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            
+            <!-- Landing Page / Upload Section -->
+            <!-- @COMPONENT: UploadSection [CSV file upload interface] -->
+            <section id="upload-section" class="mb-8">
+                <div class="bg-white rounded-lg shadow-material-2 p-8">
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-material-blue bg-opacity-10 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-file-csv text-material-blue text-2xl"></i>
+                        </div>
+                        <h2 class="text-2xl font-medium text-gray-900 mb-2">Upload CSV File for Analysis</h2>
+                        <p class="text-gray-600 mb-8">Upload your CSV file to start comprehensive data profiling and analysis</p>
+                        
+                        <!-- File Upload Area -->
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-12 hover:border-material-blue transition-colors cursor-pointer" data-implementation="Implement file drop zone with drag & drop support">
+                            <input type="file" id="csvFile" accept=".csv" class="hidden" data-event="change:handleFileUpload">
+                            <label for="csvFile" class="cursor-pointer">
+                                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4 block"></i>
+                                <p class="text-lg font-medium text-gray-700 mb-2">Drop your CSV file here or click to browse</p>
+                                <p class="text-sm text-gray-500">Supports CSV files up to 100MB</p>
+                            </label>
+                        </div>
+                        
+                        <!-- Upload Button -->
+                        <button class="mt-6 bg-material-blue hover:bg-material-blue-dark text-white px-8 py-3 rounded-lg font-medium transition-colors shadow-material-1 hover:shadow-material-2" data-event="click:handleUpload">
+                            <i class="fas fa-upload mr-2"></i>
+                            Upload & Process CSV
+                        </button>
+                    </div>
+                </div>
+            </section>
+            <!-- @END_COMPONENT: UploadSection -->
+
+            <!-- CSV Data Display Section -->
+            <!-- @COMPONENT: DataFrameDisplay [displays uploaded CSV in table format] -->
+            <section id="dataframe-section" class="mb-8 hidden">
+                <div class="bg-white rounded-lg shadow-material-2 p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h3 class="text-xl font-medium text-gray-900 flex items-center">
+                                <i class="fas fa-table text-material-blue mr-3"></i>
+                                CSV Data Preview
+                            </h3>
+                            <p class="text-gray-600 mt-1">Showing first 100 rows of your dataset</p>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            <span data-bind="file.name" data-mock="true">sales_data.csv</span> • 
+                            <span data-bind="file.size" data-mock="true">2.4 MB</span>
+                        </div>
+                    </div>
+
+                    <!-- Data Table Container -->
+                    <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr data-mock="true">
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Purchase Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <!-- @MAP: csvData.slice(0, 5).map(row => ( -->
+                                <tr data-mock="true">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1001</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">John Smith</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">john.smith@email.com</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">2024-01-15</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">$245.50</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">Electronics</td>
+                                </tr>
+                                <tr class="bg-gray-50" data-mock="true">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1002</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Sarah Johnson</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">sarah.j@email.com</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">2024-01-16</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">$89.99</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">Clothing</td>
+                                </tr>
+                                <tr data-mock="true">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1003</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Michael Brown</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">2024-01-17</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">$156.75</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">Books</td>
+                                </tr>
+                                <!-- @END_MAP )) -->
+                                <tr>
+                                    <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                                        ... and <span data-bind="remainingRows" data-mock="true">2,847</span> more rows
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+            <!-- @END_COMPONENT: DataFrameDisplay -->
+
+            <!-- Data Profiling Options Selection -->
+            <!-- @COMPONENT: ProfilingOptionsSelector [checkbox interface for selecting profiling options] -->
+            <section id="profiling-options-section" class="mb-8 hidden">
+                <div class="bg-white rounded-lg shadow-material-2 p-6">
+                    <div class="mb-6">
+                        <h3 class="text-xl font-medium text-gray-900 flex items-center">
+                            <i class="fas fa-cogs text-material-blue mr-3"></i>
+                            Select Data Profiling Options
+                        </h3>
+                        <p class="text-gray-600 mt-1">Choose which data quality checks and profiling analyses to perform</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                        <!-- Profiling Option Cards -->
+                        <div class="border border-gray-200 rounded-lg p-4 hover:border-material-blue transition-colors cursor-pointer" data-event="click:toggleOption" data-option="rowCount">
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                <input type="checkbox" class="mt-1 text-material-blue border-gray-300 rounded focus:ring-material-blue" checked data-implementation="Bind to profiling options state">
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-hashtag text-material-blue text-sm"></i>
+                                        <h4 class="font-medium text-gray-900">Row Count</h4>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">Count total number of records in the CSV</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="border border-gray-200 rounded-lg p-4 hover:border-material-blue transition-colors cursor-pointer" data-event="click:toggleOption" data-option="dateRange">
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                <input type="checkbox" class="mt-1 text-material-blue border-gray-300 rounded focus:ring-material-blue" checked>
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-calendar-alt text-material-blue text-sm"></i>
+                                        <h4 class="font-medium text-gray-900">Date Range Analysis</h4>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">Find min/max dates in date columns</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="border border-gray-200 rounded-lg p-4 hover:border-material-blue transition-colors cursor-pointer" data-event="click:toggleOption" data-option="distinctValues">
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                <input type="checkbox" class="mt-1 text-material-blue border-gray-300 rounded focus:ring-material-blue">
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-filter text-material-blue text-sm"></i>
+                                        <h4 class="font-medium text-gray-900">Distinct Values</h4>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">Show unique values for selected columns</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="border border-gray-200 rounded-lg p-4 hover:border-material-blue transition-colors cursor-pointer" data-event="click:toggleOption" data-option="nullValues">
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                <input type="checkbox" class="mt-1 text-material-blue border-gray-300 rounded focus:ring-material-blue" checked>
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-exclamation-triangle text-material-warning text-sm"></i>
+                                        <h4 class="font-medium text-gray-900">Null Value Analysis</h4>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">Count null values per column</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="border border-gray-200 rounded-lg p-4 hover:border-material-blue transition-colors cursor-pointer" data-event="click:toggleOption" data-option="duplicates">
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                <input type="checkbox" class="mt-1 text-material-blue border-gray-300 rounded focus:ring-material-blue" checked>
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-copy text-material-error text-sm"></i>
+                                        <h4 class="font-medium text-gray-900">Duplicate Detection</h4>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">Identify true duplicate rows</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="border border-gray-200 rounded-lg p-4 hover:border-material-blue transition-colors cursor-pointer" data-event="click:toggleOption" data-option="dataSize">
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                <input type="checkbox" class="mt-1 text-material-blue border-gray-300 rounded focus:ring-material-blue" checked>
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-hdd text-material-blue text-sm"></i>
+                                        <h4 class="font-medium text-gray-900">Data Size Analysis</h4>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">Calculate total size of the dataset</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="border border-gray-200 rounded-lg p-4 hover:border-material-blue transition-colors cursor-pointer" data-event="click:toggleOption" data-option="columnCount">
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                <input type="checkbox" class="mt-1 text-material-blue border-gray-300 rounded focus:ring-material-blue" checked>
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-columns text-material-blue text-sm"></i>
+                                        <h4 class="font-medium text-gray-900">Column Count</h4>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">Total number of columns in dataset</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="border border-gray-200 rounded-lg p-4 hover:border-material-blue transition-colors cursor-pointer" data-event="click:toggleOption" data-option="dateColumns">
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                <input type="checkbox" class="mt-1 text-material-blue border-gray-300 rounded focus:ring-material-blue">
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-calendar-check text-material-blue text-sm"></i>
+                                        <h4 class="font-medium text-gray-900">Date Column Detection</h4>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">Identify and list date columns</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="border border-gray-200 rounded-lg p-4 hover:border-material-blue transition-colors cursor-pointer" data-event="click:toggleOption" data-option="delimiter">
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                <input type="checkbox" class="mt-1 text-material-blue border-gray-300 rounded focus:ring-material-blue" checked>
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-grip-lines-vertical text-material-blue text-sm"></i>
+                                        <h4 class="font-medium text-gray-900">Delimiter Detection</h4>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">Detect CSV delimiter character</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="border border-gray-200 rounded-lg p-4 hover:border-material-blue transition-colors cursor-pointer" data-event="click:toggleOption" data-option="uniqueKey">
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                <input type="checkbox" class="mt-1 text-material-blue border-gray-300 rounded focus:ring-material-blue">
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-key text-material-success text-sm"></i>
+                                        <h4 class="font-medium text-gray-900">Unique Key Detection</h4>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">Find potential unique key columns</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Column Selection for Specific Options -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                        <h4 class="font-medium text-gray-900 mb-3">Column-Specific Analysis</h4>
+                        <p class="text-sm text-gray-600 mb-4">Select columns for distinct values analysis</p>
+                        
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <!-- @MAP: columns.map(column => ( -->
+                            <label class="flex items-center space-x-2 text-sm" data-mock="true">
+                                <input type="checkbox" class="text-material-blue border-gray-300 rounded text-xs">
+                                <span class="text-gray-700">Customer Name</span>
+                            </label>
+                            <label class="flex items-center space-x-2 text-sm" data-mock="true">
+                                <input type="checkbox" class="text-material-blue border-gray-300 rounded text-xs">
+                                <span class="text-gray-700">Email</span>
+                            </label>
+                            <label class="flex items-center space-x-2 text-sm" data-mock="true">
+                                <input type="checkbox" class="text-material-blue border-gray-300 rounded text-xs" checked>
+                                <span class="text-gray-700">Category</span>
+                            </label>
+                            <label class="flex items-center space-x-2 text-sm" data-mock="true">
+                                <input type="checkbox" class="text-material-blue border-gray-300 rounded text-xs">
+                                <span class="text-gray-700">Purchase Date</span>
+                            </label>
+                            <!-- @END_MAP )) -->
+                        </div>
+                    </div>
+
+                    <!-- Process Button -->
+                    <div class="flex justify-center">
+                        <button class="bg-material-blue hover:bg-material-blue-dark text-white px-8 py-3 rounded-lg font-medium transition-colors shadow-material-1 hover:shadow-material-2" data-event="click:startProfiling">
+                            <i class="fas fa-play mr-2"></i>
+                            Start Data Profiling Analysis
+                        </button>
+                    </div>
+                </div>
+            </section>
+            <!-- @END_COMPONENT: ProfilingOptionsSelector -->
+
+            <!-- Processing State -->
+            <!-- @COMPONENT: ProcessingIndicator [shows progress during analysis] -->
+            <section id="processing-section" class="mb-8 hidden">
+                <div class="bg-white rounded-lg shadow-material-2 p-8 text-center">
+                    <div class="w-16 h-16 border-4 border-material-blue border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <h3 class="text-xl font-medium text-gray-900 mb-2">Processing Your Data...</h3>
+                    <p class="text-gray-600 mb-6">Running selected profiling analyses on your CSV data</p>
+                    
+                    <!-- Progress Steps -->
+                    <div class="space-y-2">
+                        <!-- @STATE: currentStep:string = '' -->
+                        <div class="flex items-center justify-center space-x-3 text-sm">
+                            <div class="w-4 h-4 bg-material-success rounded-full flex items-center justify-center">
+                                <i class="fas fa-check text-white text-xs"></i>
+                            </div>
+                            <span class="text-gray-700">Row count analysis completed</span>
+                        </div>
+                        <div class="flex items-center justify-center space-x-3 text-sm">
+                            <div class="w-4 h-4 border-2 border-material-blue rounded-full animate-pulse"></div>
+                            <span class="text-material-blue font-medium">Processing null value analysis...</span>
+                        </div>
+                        <div class="flex items-center justify-center space-x-3 text-sm">
+                            <div class="w-4 h-4 border-2 border-gray-300 rounded-full"></div>
+                            <span class="text-gray-500">Duplicate detection pending</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- @END_COMPONENT: ProcessingIndicator -->
+
+            <!-- Data Profiling Report -->
+            <!-- @COMPONENT: ProfilingReport [comprehensive report display] -->
+            <section id="report-section" class="hidden">
+                <div class="bg-white rounded-lg shadow-material-2 p-6">
+                    <!-- Report Header -->
+                    <div class="border-b border-gray-200 pb-6 mb-8">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-2xl font-medium text-gray-900 flex items-center">
+                                    <i class="fas fa-chart-bar text-material-blue mr-3"></i>
+                                    Data Profiling Report
+                                </h3>
+                                <p class="text-gray-600 mt-1">Comprehensive analysis results for your CSV dataset</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm text-gray-500">Generated on</div>
+                                <div class="font-medium text-gray-900" data-bind="reportGeneratedAt" data-mock="true">January 20, 2024 at 2:45 PM</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Summary Statistics Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-gradient-to-br from-material-blue to-blue-600 rounded-lg p-6 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-blue-100 text-sm font-medium">Total Records</p>
+                                    <p class="text-2xl font-bold" data-bind="analysis.rowCount" data-mock="true">2,850</p>
+                                </div>
+                                <i class="fas fa-hashtag text-blue-200 text-2xl"></i>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-material-success to-green-600 rounded-lg p-6 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-green-100 text-sm font-medium">Total Columns</p>
+                                    <p class="text-2xl font-bold" data-bind="analysis.columnCount" data-mock="true">6</p>
+                                </div>
+                                <i class="fas fa-columns text-green-200 text-2xl"></i>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-material-warning to-yellow-600 rounded-lg p-6 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-yellow-100 text-sm font-medium">Data Size</p>
+                                    <p class="text-2xl font-bold" data-bind="analysis.dataSize" data-mock="true">2.4 MB</p>
+                                </div>
+                                <i class="fas fa-hdd text-yellow-200 text-2xl"></i>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-purple-100 text-sm font-medium">CSV Delimiter</p>
+                                    <p class="text-2xl font-bold" data-bind="analysis.delimiter" data-mock="true">,</p>
+                                </div>
+                                <i class="fas fa-grip-lines-vertical text-purple-200 text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Analysis Sections -->
+                    <div class="space-y-8">
+                        
+                        <!-- Null Values Analysis -->
+                        <div class="border border-gray-200 rounded-lg p-6">
+                            <h4 class="text-lg font-medium text-gray-900 flex items-center mb-4">
+                                <i class="fas fa-exclamation-triangle text-material-warning mr-3"></i>
+                                Null Values Analysis
+                            </h4>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Column Name</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Null Count</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Null Percentage</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                        <!-- @MAP: nullAnalysis.map(item => ( -->
+                                        <tr data-mock="true">
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">ID</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">0</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">0.0%</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="px-2 py-1 text-xs font-medium bg-material-success bg-opacity-10 text-material-success rounded-full">Clean</span>
+                                            </td>
+                                        </tr>
+                                        <tr class="bg-gray-50" data-mock="true">
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Email</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">127</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">4.5%</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="px-2 py-1 text-xs font-medium bg-material-warning bg-opacity-10 text-material-warning rounded-full">Needs Attention</span>
+                                            </td>
+                                        </tr>
+                                        <tr data-mock="true">
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Amount</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">5</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">0.2%</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="px-2 py-1 text-xs font-medium bg-material-success bg-opacity-10 text-material-success rounded-full">Clean</span>
+                                            </td>
+                                        </tr>
+                                        <!-- @END_MAP )) -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Date Analysis -->
+                        <div class="border border-gray-200 rounded-lg p-6">
+                            <h4 class="text-lg font-medium text-gray-900 flex items-center mb-4">
+                                <i class="fas fa-calendar-alt text-material-blue mr-3"></i>
+                                Date Analysis Results
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-blue-50 rounded-lg p-4">
+                                    <h5 class="font-medium text-gray-900 mb-2">Date Columns Detected</h5>
+                                    <ul class="space-y-1 text-sm text-gray-700">
+                                        <li data-mock="true">• Purchase Date</li>
+                                        <li data-mock="true">• Created At</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-green-50 rounded-lg p-4">
+                                    <h5 class="font-medium text-gray-900 mb-2">Date Range (Purchase Date)</h5>
+                                    <div class="text-sm text-gray-700 space-y-1">
+                                        <div data-mock="true"><strong>Min Date:</strong> 2023-01-01</div>
+                                        <div data-mock="true"><strong>Max Date:</strong> 2024-01-19</div>
+                                        <div data-mock="true"><strong>Date Range:</strong> 384 days</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Duplicate Rows -->
+                        <div class="border border-gray-200 rounded-lg p-6">
+                            <h4 class="text-lg font-medium text-gray-900 flex items-center mb-4">
+                                <i class="fas fa-copy text-material-error mr-3"></i>
+                                Duplicate Rows Detection
+                            </h4>
+                            <div class="mb-4">
+                                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-exclamation-circle text-material-error mr-2"></i>
+                                        <span class="font-medium text-gray-900">Found <span data-bind="duplicates.count" data-mock="true">23</span> duplicate rows</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Row Index</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer Name</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duplicate Count</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                        <!-- @MAP: duplicateRows.slice(0, 3).map(row => ( -->
+                                        <tr data-mock="true">
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">145, 267</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">John Smith</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">john.smith@email.com</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="px-2 py-1 text-xs font-medium bg-material-error bg-opacity-10 text-material-error rounded-full">2 occurrences</span>
+                                            </td>
+                                        </tr>
+                                        <!-- @END_MAP )) -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Distinct Values Analysis -->
+                        <div class="border border-gray-200 rounded-lg p-6">
+                            <h4 class="text-lg font-medium text-gray-900 flex items-center mb-4">
+                                <i class="fas fa-filter text-material-blue mr-3"></i>
+                                Distinct Values Analysis
+                            </h4>
+                            <div class="space-y-4">
+                                <div class="bg-blue-50 rounded-lg p-4">
+                                    <h5 class="font-medium text-gray-900 mb-3">Category Column - Distinct Values</h5>
+                                    <div class="flex flex-wrap gap-2">
+                                        <!-- @MAP: distinctValues.Category.map(value => ( -->
+                                        <span class="px-3 py-1 bg-white border border-gray-200 rounded-full text-sm text-gray-700" data-mock="true">Electronics (847 records)</span>
+                                        <span class="px-3 py-1 bg-white border border-gray-200 rounded-full text-sm text-gray-700" data-mock="true">Clothing (623 records)</span>
+                                        <span class="px-3 py-1 bg-white border border-gray-200 rounded-full text-sm text-gray-700" data-mock="true">Books (456 records)</span>
+                                        <span class="px-3 py-1 bg-white border border-gray-200 rounded-full text-sm text-gray-700" data-mock="true">Home & Garden (324 records)</span>
+                                        <span class="px-3 py-1 bg-white border border-gray-200 rounded-full text-sm text-gray-700" data-mock="true">Sports (289 records)</span>
+                                        <span class="px-3 py-1 bg-white border border-gray-200 rounded-full text-sm text-gray-700" data-mock="true">Automotive (194 records)</span>
+                                        <span class="px-3 py-1 bg-white border border-gray-200 rounded-full text-sm text-gray-700" data-mock="true">Other (117 records)</span>
+                                        <!-- @END_MAP )) -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Unique Key Analysis -->
+                        <div class="border border-gray-200 rounded-lg p-6">
+                            <h4 class="text-lg font-medium text-gray-900 flex items-center mb-4">
+                                <i class="fas fa-key text-material-success mr-3"></i>
+                                Unique Key Column Analysis
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-green-50 rounded-lg p-4">
+                                    <h5 class="font-medium text-gray-900 mb-2">Potential Unique Keys</h5>
+                                    <ul class="space-y-2 text-sm">
+                                        <li class="flex items-center space-x-2" data-mock="true">
+                                            <i class="fas fa-check-circle text-material-success"></i>
+                                            <span><strong>ID</strong> - 100% unique (2,850 distinct values)</span>
+                                        </li>
+                                        <li class="flex items-center space-x-2" data-mock="true">
+                                            <i class="fas fa-times-circle text-material-error"></i>
+                                            <span><strong>Email</strong> - 95.5% unique (2,723 distinct values)</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="bg-blue-50 rounded-lg p-4">
+                                    <h5 class="font-medium text-gray-900 mb-2">Recommendation</h5>
+                                    <p class="text-sm text-gray-700">
+                                        <strong>ID</strong> column is recommended as the primary unique key with 100% uniqueness across all records.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Export Options -->
+                    <div class="border-t border-gray-200 pt-6 mt-8">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="font-medium text-gray-900">Export Report</h4>
+                                <p class="text-sm text-gray-600">Download this analysis in your preferred format</p>
+                            </div>
+                            <div class="flex space-x-3">
+                                <button class="bg-material-blue hover:bg-material-blue-dark text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" data-event="click:exportPDF">
+                                    <i class="fas fa-file-pdf mr-2"></i>Export PDF
+                                </button>
+                                <button class="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors" data-event="click:exportJSON">
+                                    <i class="fas fa-file-code mr-2"></i>Export JSON
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- @END_COMPONENT: ProfilingReport -->
+
+        </main>
+    </div>
+    <!-- @END_COMPONENT: AppContainer -->
+
+    <script>
+        // TODO: Implement business logic, API calls, or state management
+        (function() {
+            'use strict';
+            
+            // State management variables
+            let currentSection = 'upload';
+            let csvData = null;
+            let profilingOptions = {};
+            let analysisResults = {};
+
+            // DOM Elements
+            const sections = {
+                upload: document.getElementById('upload-section'),
+                dataframe: document.getElementById('dataframe-section'),
+                options: document.getElementById('profiling-options-section'),
+                processing: document.getElementById('processing-section'),
+                report: document.getElementById('report-section')
+            };
+
+            // Initialize application
+            function init() {
+                setupEventListeners();
+                showSection('upload');
+            }
+
+            // Setup event listeners
+            function setupEventListeners() {
+                // File upload handling
+                const fileInput = document.getElementById('csvFile');
+                if (fileInput) {
+                    fileInput.addEventListener('change', handleFileUpload);
+                }
+
+                // Button event listeners
+                document.addEventListener('click', function(e) {
+                    if (e.target.matches('[data-event*="click:"]')) {
+                        const action = e.target.getAttribute('data-event').split(':')[1];
+                        handleButtonClick(action, e.target);
+                    }
+                });
+
+                // Checkbox event listeners for profiling options
+                document.addEventListener('change', function(e) {
+                    if (e.target.type === 'checkbox') {
+                        handleCheckboxChange(e.target);
+                    }
+                });
+            }
+
+            // Handle file upload
+            function handleFileUpload(event) {
+                const file = event.target.files[0];
+                if (file && file.type === 'text/csv') {
+                    // TODO: Parse CSV file and populate csvData
+                    console.log('Uploading file:', file.name);
+                    
+                    // Simulate file processing
+                    setTimeout(() => {
+                        showSection('dataframe');
+                        setTimeout(() => showSection('options'), 1000);
+                    }, 500);
+                } else {
+                    alert('Please select a valid CSV file.');
+                }
+            }
+
+            // Handle button clicks
+            function handleButtonClick(action, element) {
+                switch (action) {
+                    case 'handleUpload':
+                        document.getElementById('csvFile').click();
+                        break;
+                    case 'startProfiling':
+                        startProfilingAnalysis();
+                        break;
+                    case 'exportPDF':
+                        // TODO: Implement PDF export functionality
+                        console.log('Exporting report as PDF');
+                        break;
+                    case 'exportJSON':
+                        // TODO: Implement JSON export functionality
+                        console.log('Exporting report as JSON');
+                        break;
+                    default:
+                        console.log('Unknown action:', action);
+                }
+            }
+
+            // Handle checkbox changes
+            function handleCheckboxChange(checkbox) {
+                const option = checkbox.closest('[data-option]')?.getAttribute('data-option');
+                if (option) {
+                    profilingOptions[option] = checkbox.checked;
+                    console.log('Updated profiling options:', profilingOptions);
+                }
+            }
+
+            // Start profiling analysis
+            function startProfilingAnalysis() {
+                showSection('processing');
+                
+                // TODO: Send data and options to backend for processing
+                // Simulate processing time
+                setTimeout(() => {
+                    showSection('report');
+                }, 3000);
+            }
+
+            // Show specific section
+            function showSection(sectionName) {
+                // Hide all sections
+                Object.values(sections).forEach(section => {
+                    if (section) section.classList.add('hidden');
+                });
+                
+                // Show target section
+                if (sections[sectionName]) {
+                    sections[sectionName].classList.remove('hidden');
+                    currentSection = sectionName;
+                }
+                
+                // Update state based on section
+                updateUIState(sectionName);
+            }
+
+            // Update UI state
+            function updateUIState(sectionName) {
+                // TODO: Update UI elements based on current section
+                console.log('Current section:', sectionName);
+            }
+
+            // Initialize the application
+            init();
+        })();
+    </script>
+</body>
+</html>

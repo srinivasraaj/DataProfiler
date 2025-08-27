@@ -51,8 +51,25 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-material-surface">
+      {/* SEO Structured Data */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{
+        __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          "name": "CSV Data Profiler - Home",
+          "description": "Upload and analyze your CSV files with comprehensive data profiling tools",
+          "url": "https://csv-data-profiler.replit.app/",
+          "mainEntity": {
+            "@type": "SoftwareApplication",
+            "name": "CSV Data Profiler",
+            "applicationCategory": "Data Analysis Tool",
+            "description": "Professional data engineering tool for CSV analysis and profiling"
+          }
+        })
+      }} />
+      
       {/* Header */}
-      <header className="bg-white shadow-material-1 sticky top-0 z-50">
+      <header className="bg-white shadow-material-1 sticky top-0 z-50" role="banner">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
@@ -93,7 +110,13 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" role="main">
+        {/* SEO-friendly heading structure */}
+        {currentState === 'upload' && (
+          <section>
+            <h2 className="sr-only">Upload CSV File for Analysis</h2>
+          </section>
+        )}
         {currentState === 'upload' && (
           <UploadSection onFileUploaded={handleFileUploaded} />
         )}

@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { ProfilingResult, CsvUpload } from "@shared/schema";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface ProfilingReportProps {
   reportData: ProfilingResult;
@@ -43,14 +45,93 @@ export default function ProfilingReport({ reportData, csvData }: ProfilingReport
     URL.revokeObjectURL(url);
   };
 
-  const exportAsPDF = () => {
-    // Basic PDF export using browser print
-    window.print();
+  const exportAsPDF = async () => {
+    try {
+      // Get the report element
+      const reportElement = document.getElementById('profiling-report');
+      if (!reportElement) {
+        console.error('Report element not found');
+        return;
+      }
+
+      // Show loading state
+      const originalText = document.querySelector('[data-testid="button-export-pdf"]')?.textContent;
+      const button = document.querySelector('[data-testid="button-export-pdf"]') as HTMLButtonElement;
+      if (button) {
+        button.textContent = 'Generating PDF...';
+        button.disabled = true;
+      }
+
+      // Create canvas from HTML with better options
+      const canvas = await html2canvas(reportElement, {
+        scale: 2, // Higher quality
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        width: reportElement.scrollWidth,
+        height: reportElement.scrollHeight,
+        scrollX: 0,
+        scrollY: 0,
+      });
+
+      // Calculate PDF dimensions
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 295; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      let position = 0;
+
+      // Add title page
+      pdf.setFontSize(20);
+      pdf.text('CSV Data Profiling Report', 20, 30);
+      pdf.setFontSize(12);
+      pdf.text(`File: ${csvData.filename}`, 20, 45);
+      pdf.text(`Generated: ${formatDate(reportData.generatedAt)}`, 20, 55);
+      pdf.text('Professional Data Engineering Analysis', 20, 65);
+
+      // Add the canvas image
+      const imgData = canvas.toDataURL('image/png');
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Add additional pages if needed
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Save the PDF
+      pdf.save(`${csvData.filename}_profiling_report.pdf`);
+
+      // Restore button
+      if (button && originalText) {
+        button.textContent = originalText;
+        button.disabled = false;
+      }
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      
+      // Restore button on error
+      const button = document.querySelector('[data-testid="button-export-pdf"]') as HTMLButtonElement;
+      if (button) {
+        button.textContent = 'Export PDF';
+        button.disabled = false;
+      }
+      
+      // Fallback to print
+      window.print();
+    }
   };
 
   return (
     <section>
-      <Card className="shadow-material-2">
+      <Card id="profiling-report" className="shadow-material-2">
         <CardHeader>
           <div className="border-b border-gray-200 pb-6 mb-8">
             <div className="flex items-center justify-between">

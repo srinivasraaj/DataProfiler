@@ -17,8 +17,25 @@ export default function DataCleaningPage() {
 
   return (
     <div className="min-h-screen bg-material-surface">
+      {/* SEO Structured Data */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{
+        __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          "name": "CSV Data Cleaning - Transform Your Data",
+          "description": "Clean and transform your CSV data with powerful tools including text manipulation, date formatting, and data coalescing",
+          "url": "https://csv-data-profiler.replit.app/cleaning",
+          "mainEntity": {
+            "@type": "SoftwareApplication",
+            "name": "CSV Data Cleaning Tool",
+            "applicationCategory": "Data Cleaning Tool",
+            "description": "Professional data cleaning and transformation tool for CSV files"
+          }
+        })
+      }} />
+      
       {/* Header */}
-      <header className="bg-white shadow-material-1 sticky top-0 z-50">
+      <header className="bg-white shadow-material-1 sticky top-0 z-50" role="banner">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
@@ -59,7 +76,7 @@ export default function DataCleaningPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" role="main">
         {!csvData ? (
           <UploadSection onFileUploaded={handleFileUploaded} />
         ) : (
